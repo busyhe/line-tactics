@@ -1,0 +1,21 @@
+name = "line-tactics-ws"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Durable Objects bindings
+[[durable_objects.bindings]]
+name = "GAME_ROOMS"
+class_name = "GameRoom"
+
+[[durable_objects.bindings]]
+name = "ROOM_REGISTRY"
+class_name = "RoomRegistry"
+
+# Durable Objects migrations
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["GameRoom"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["RoomRegistry"]
