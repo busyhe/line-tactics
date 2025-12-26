@@ -1,6 +1,7 @@
 import React from 'react';
 import { BoardState, Player, Point, BOARD_SIZE } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useI18n } from '../utils/i18n';
 
 interface GridBoardProps {
   board: BoardState;
@@ -25,6 +26,7 @@ const GridBoard: React.FC<GridBoardProps> = ({
   lastMove,
   winner,
 }) => {
+  const { t } = useI18n();
   const isLocalMode = myPlayer === null;
   const isMyTurn = isLocalMode || turn === myPlayer;
   const canInteract = !winner && isMyTurn;
@@ -61,7 +63,7 @@ const GridBoard: React.FC<GridBoardProps> = ({
         <div className='absolute inset-0 z-30 flex items-center justify-center pointer-events-none'>
           <div className='bg-slate-950/60 backdrop-blur-[2px] px-4 py-2 rounded-full border border-slate-700 text-slate-300 text-xs sm:text-sm font-bold flex items-center gap-2'>
             <div className='w-2 h-2 bg-slate-400 rounded-full animate-pulse' />
-            Opponent is thinking...
+            {t('thinking')}
           </div>
         </div>
       )}

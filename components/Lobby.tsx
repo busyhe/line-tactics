@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useI18n } from '../utils/i18n';
 
 interface RoomInfo {
   roomId: string;
@@ -13,6 +14,7 @@ interface LobbyProps {
 }
 
 const Lobby: React.FC<LobbyProps> = ({ onJoinLocal, onJoinOnline }) => {
+  const { t } = useI18n();
   const [roomId, setRoomId] = useState('');
   const [mode, setMode] = useState<'menu' | 'online-setup'>('menu');
   const [selectedColor, setSelectedColor] = useState<'red' | 'blue' | null>(
@@ -80,9 +82,9 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinLocal, onJoinOnline }) => {
     <div className='w-full max-w-md bg-slate-900/90 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-2xl animate-in fade-in zoom-in duration-300'>
       <div className='text-center mb-8'>
         <h2 className='text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-indigo-400 to-cyan-300 mb-2'>
-          New Game
+          {t('newGame')}
         </h2>
-        <p className='text-slate-400 text-sm'>Select a game mode to begin</p>
+        <p className='text-slate-400 text-sm'>{t('selectMode')}</p>
       </div>
 
       {mode === 'menu' ? (
@@ -109,9 +111,9 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinLocal, onJoinOnline }) => {
               </div>
               <div>
                 <h3 className='font-bold text-lg text-white group-hover:text-indigo-300 transition-colors'>
-                  Local Multiplayer
+                  {t('localMultiplayer')}
                 </h3>
-                <p className='text-xs text-slate-400'>Play on this device</p>
+                <p className='text-xs text-slate-400'>{t('playOnDevice')}</p>
               </div>
             </div>
           </button>
@@ -138,11 +140,9 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinLocal, onJoinOnline }) => {
               </div>
               <div>
                 <h3 className='font-bold text-lg text-white group-hover:text-cyan-300 transition-colors'>
-                  Online Multiplayer
+                  {t('onlineMultiplayer')}
                 </h3>
-                <p className='text-xs text-slate-400'>
-                  Sync across devices/tabs
-                </p>
+                <p className='text-xs text-slate-400'>{t('syncDevices')}</p>
               </div>
             </div>
           </button>
@@ -152,13 +152,13 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinLocal, onJoinOnline }) => {
           {/* Room ID Input */}
           <div className='bg-slate-800/50 p-4 rounded-xl border border-slate-700'>
             <label className='block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2'>
-              Room ID
+              {t('roomId')}
             </label>
             <input
               type='text'
               value={roomId}
               onChange={(e) => setRoomId(e.target.value.toUpperCase())}
-              placeholder='ENTER ROOM NAME'
+              placeholder={t('enterRoomName')}
               className='w-full bg-slate-900 text-center font-mono text-xl py-3 rounded-lg border border-slate-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all placeholder:text-slate-700'
               maxLength={8}
             />
@@ -167,7 +167,7 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinLocal, onJoinOnline }) => {
           {/* Color Selection */}
           <div className='bg-slate-800/50 p-4 rounded-xl border border-slate-700'>
             <label className='block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3'>
-              Select Your Color
+              {t('selectColor')}
             </label>
             <div className='grid grid-cols-2 gap-3'>
               <button
@@ -178,7 +178,7 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinLocal, onJoinOnline }) => {
                     : 'bg-slate-700 text-red-400 hover:bg-red-600/20 border border-red-500/30'
                 }`}
               >
-                🔴 Red
+                🔴 {t('red')}
               </button>
               <button
                 onClick={() => setSelectedColor('blue')}
@@ -188,7 +188,7 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinLocal, onJoinOnline }) => {
                     : 'bg-slate-700 text-blue-400 hover:bg-blue-600/20 border border-blue-500/30'
                 }`}
               >
-                🔵 Blue
+                🔵 {t('blue')}
               </button>
             </div>
 
@@ -201,8 +201,7 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinLocal, onJoinOnline }) => {
                     : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
                 }`}
               >
-                You will play as{' '}
-                <span className='font-bold uppercase'>{selectedColor}</span>
+                {t('playAs', { color: t(selectedColor).toUpperCase() })}
               </div>
             )}
           </div>
@@ -214,15 +213,15 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinLocal, onJoinOnline }) => {
             className='w-full py-3 bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-cyan-500/30'
           >
             {roomId && selectedColor
-              ? `Join as ${selectedColor.toUpperCase()}`
-              : 'Select Room & Color'}
+              ? t('joinAs', { color: t(selectedColor).toUpperCase() })
+              : t('selectRoomColor')}
           </button>
 
           {/* Available Rooms */}
           {rooms.length > 0 && (
             <div className='bg-slate-800/50 p-4 rounded-xl border border-slate-700'>
               <label className='block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3'>
-                Available Rooms ({rooms.length})
+                {t('availableRooms')} ({rooms.length})
               </label>
               <div className='space-y-2 max-h-40 overflow-y-auto'>
                 {rooms.map((room) => (
@@ -240,14 +239,14 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinLocal, onJoinOnline }) => {
                           room.hasRed ? 'text-red-400' : 'text-slate-500'
                         }
                       >
-                        🔴 {room.hasRed ? 'Joined' : 'Open'}
+                        🔴 {room.hasRed ? t('joined') : t('open')}
                       </span>
                       <span
                         className={
                           room.hasBlue ? 'text-blue-400' : 'text-slate-500'
                         }
                       >
-                        🔵 {room.hasBlue ? 'Joined' : 'Open'}
+                        🔵 {room.hasBlue ? t('joined') : t('open')}
                       </span>
                     </div>
                   </button>
@@ -258,7 +257,7 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinLocal, onJoinOnline }) => {
 
           {loading && (
             <div className='text-center text-slate-500 text-sm'>
-              Loading rooms...
+              {t('loadingRooms')}
             </div>
           )}
 
@@ -269,7 +268,7 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinLocal, onJoinOnline }) => {
             }}
             className='w-full py-2 text-slate-500 hover:text-slate-300 text-sm font-medium transition-colors'
           >
-            Cancel
+            {t('cancel')}
           </button>
         </div>
       )}

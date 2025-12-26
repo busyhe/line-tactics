@@ -11,8 +11,10 @@ import GridBoard from './components/GridBoard';
 import InfoPanel from './components/InfoPanel';
 import RulesModal from './components/RulesModal';
 import Lobby from './components/Lobby';
+import { I18nProvider, useI18n } from './utils/i18n';
 
-const App: React.FC = () => {
+const Game: React.FC = () => {
+  const { t, lang, setLang } = useI18n();
   // --- Game State ---
   const [gameMode, setGameMode] = useState<GameMode | 'lobby'>('lobby');
   const [board, setBoard] = useState<BoardState>(createInitialBoard());
@@ -44,11 +46,11 @@ const App: React.FC = () => {
 
     if (rCount < 2) {
       setWinner('blue');
-      addLog('Blue wins! Red eliminated.');
+      addLog(t('blueWins') + ' ' + t('redEliminated'));
       return true;
     } else if (bCount < 2) {
       setWinner('red');
-      addLog('Red wins! Blue eliminated.');
+      addLog(t('redWins') + ' ' + t('blueEliminated'));
       return true;
     }
     return false;
@@ -127,7 +129,7 @@ const App: React.FC = () => {
     resetGame();
     setGameMode('local');
     setMyPlayer(null); // Local player controls both
-    addLog("Local game started. Red's turn.");
+    addLog(t('logLocalStarted'));
   };
 
   const startOnlineGame = async (room: string, role: 'host' | 'join') => {
@@ -139,7 +141,9 @@ const App: React.FC = () => {
     // Note: In a real server scenario, the server would assign this.
     const playerRole = role === 'host' ? 'red' : 'blue';
     setMyPlayer(playerRole);
-    addLog(`Joined Room: ${room} as ${playerRole.toUpperCase()}`);
+    addLog(
+      t('logJoinedRoom', { room: room, role: t(playerRole).toUpperCase() })
+    );
 
     // Register with room registry
     const apiBaseUrl =
@@ -184,9 +188,9 @@ const App: React.FC = () => {
     resetGame();
     if (gameMode === 'online') {
       networkRef.current?.send({ type: 'RESET' });
-      addLog('Game reset by player.');
+      addLog(t('logResetByPlayer'));
     } else {
-      addLog('Game reset.');
+      addLog(t('logResetByPlayer'));
     }
   };
 
@@ -250,7 +254,12 @@ const App: React.FC = () => {
     setPossibleMoves([]);
 
     if (captured.length > 0) {
-      addLog(`${movingPiece.toUpperCase()} captured ${captured.length}!`);
+      addLog(
+        t('logCaptured', {
+          color: t(movingPiece).toUpperCase(),
+          count: captured.length,
+        })
+      );
     }
 
     // 4. Check Win
@@ -273,10 +282,10 @@ const App: React.FC = () => {
         break;
       case 'RESET':
         resetGame();
-        addLog('Opponent reset the game.');
+        addLog(t('logOpponentReset'));
         break;
       case 'JOIN':
-        addLog('A player joined the room. Game starting!');
+        addLog(t('logPlayerJoined'));
         // Reset game when second player joins for a fresh start
         resetGame();
         break;
@@ -292,16 +301,40 @@ const App: React.FC = () => {
       </div>
 
       {/* Header */}
-      <header className='relative z-10 pt-8 pb-4 sm:pt-10 sm:pb-8 text-center px-4 w-full'>
-        <div className='flex items-center justify-center gap-3'>
+      <header className='relative z-20 pt-8 pb-4 sm:pt-10 sm:pb-8 text-center px-4 w-full'>
+        <div className='flex items-center justify-center gap-3 relative'>
           <h1 className='text-4xl sm:text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-white to-cyan-300 drop-shadow-2xl tracking-tighter'>
-            Line Tactics
+            {t('title')}
           </h1>
+
+          {/* Language Switcher */}
+          <div className='absolute right-4 top-1/2 -translate-y-1/2 flex bg-slate-800/50 backdrop-blur-md rounded-lg p-1 border border-slate-700/50'>
+            <button
+              onClick={() => setLang('zh')}
+              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                lang === 'zh'
+                  ? 'bg-indigo-500 text-white shadow-lg'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              中
+            </button>
+            <button
+              onClick={() => setLang('en')}
+              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                lang === 'en'
+                  ? 'bg-indigo-500 text-white shadow-lg'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              EN
+            </button>
+          </div>
         </div>
         <p className='text-indigo-200/50 text-xs sm:text-sm font-bold tracking-[0.2em] mt-2 uppercase'>
           {gameMode === 'online'
-            ? `Online Room: ${roomId}`
-            : 'The Four Pieces Strategy'}
+            ? `${t('onlineMultiplayer')}: ${roomId}`
+            : t('subtitle')}
         </p>
       </header>
 
@@ -356,7 +389,7 @@ const App: React.FC = () => {
                   }}
                   className='w-full py-2 text-xs font-bold text-slate-500 hover:text-white bg-slate-800/50 hover:bg-slate-700 rounded-lg transition-colors uppercase tracking-widest'
                 >
-                  Exit to Menu
+                  {t('exitToMenu')}
                 </button>
               </div>
             </div>
@@ -366,6 +399,14 @@ const App: React.FC = () => {
 
       <RulesModal isOpen={rulesOpen} onClose={() => setRulesOpen(false)} />
     </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <I18nProvider>
+      <Game />
+    </I18nProvider>
   );
 };
 
