@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BoardState, Player, Point, GameMode, NetworkMessage } from './types';
+import {
+  BoardState,
+  Player,
+  Point,
+  GameMode,
+  NetworkMessage,
+  LogEntry,
+} from './types';
 import {
   createInitialBoard,
   getValidMoves,
@@ -28,7 +35,7 @@ const Game: React.FC = () => {
   const [selectedPiece, setSelectedPiece] = useState<Point | null>(null);
   const [possibleMoves, setPossibleMoves] = useState<Point[]>([]);
   const [lastMove, setLastMove] = useState<Point | null>(null);
-  const [logs, setLogs] = useState<string[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const [rulesOpen, setRulesOpen] = useState<boolean>(false);
 
   // --- Network State ---
@@ -41,7 +48,8 @@ const Game: React.FC = () => {
   // --- Helpers ---
   const redCount = countPieces(board, 'red');
   const blueCount = countPieces(board, 'blue');
-  const addLog = (msg: string) => setLogs((prev) => [msg, ...prev].slice(0, 5));
+  const addLog = (entry: LogEntry) =>
+    setLogs((prev) => [entry, ...prev].slice(0, 5));
 
   // --- Logic ---
   const checkWinCondition = (currentBoard: BoardState) => {
@@ -50,11 +58,11 @@ const Game: React.FC = () => {
 
     if (rCount < 2) {
       setWinner('blue');
-      addLog(t('blueWins') + ' ' + t('redEliminated'));
+      addLog({ key: 'blueWinsFull' });
       return true;
     } else if (bCount < 2) {
       setWinner('red');
-      addLog(t('redWins') + ' ' + t('blueEliminated'));
+      addLog({ key: 'redWinsFull' });
       return true;
     }
     return false;
@@ -117,13 +125,10 @@ const Game: React.FC = () => {
       const move = getBotMove(board, 'blue', difficulty);
       if (move) {
         executeMove(move);
-        addLog(
-          t('logCaptured', { color: t('blue').toUpperCase(), count: 0 }).split(
-            ' '
-          )[0] +
-            ' ' +
-            t('thinking')
-        ); // Placeholder-ish or just simple log
+        addLog({
+          key: 'logThinking',
+          params: { color: { key: 'blue' }, text: { key: 'thinking' } },
+        });
       }
     }, 1000);
 
@@ -155,7 +160,7 @@ const Game: React.FC = () => {
     resetGame();
     setGameMode('local');
     setMyPlayer(null); // Local player controls both
-    addLog(t('logLocalStarted'));
+    addLog({ key: 'logLocalStarted' });
   };
 
   const startBotGame = (level: Difficulty) => {
@@ -163,7 +168,7 @@ const Game: React.FC = () => {
     setGameMode('bot');
     setDifficulty(level);
     setMyPlayer('red'); // Player is always red vs bot for now
-    addLog(t('logLocalStarted'));
+    addLog({ key: 'logLocalStarted' });
   };
 
   const startOnlineGame = async (room: string, role: 'host' | 'join') => {
@@ -175,9 +180,10 @@ const Game: React.FC = () => {
     // Note: In a real server scenario, the server would assign this.
     const playerRole = role === 'host' ? 'red' : 'blue';
     setMyPlayer(playerRole);
-    addLog(
-      t('logJoinedRoom', { room: room, role: t(playerRole).toUpperCase() })
-    );
+    addLog({
+      key: 'logJoinedRoom',
+      params: { room: room, role: { key: playerRole } },
+    });
 
     // Register with room registry
     const apiBaseUrl =
@@ -222,9 +228,9 @@ const Game: React.FC = () => {
     resetGame();
     if (gameMode === 'online') {
       networkRef.current?.send({ type: 'RESET' });
-      addLog(t('logResetByPlayer'));
+      addLog({ key: 'logResetByPlayer' });
     } else {
-      addLog(t('logResetByPlayer'));
+      addLog({ key: 'logResetByPlayer' });
     }
   };
 
@@ -288,12 +294,10 @@ const Game: React.FC = () => {
     setPossibleMoves([]);
 
     if (captured.length > 0) {
-      addLog(
-        t('logCaptured', {
-          color: t(movingPiece).toUpperCase(),
-          count: captured.length,
-        })
-      );
+      addLog({
+        key: 'logCaptured',
+        params: { color: { key: movingPiece }, count: captured.length },
+      });
     }
 
     // 4. Check Win
@@ -316,10 +320,10 @@ const Game: React.FC = () => {
         break;
       case 'RESET':
         resetGame();
-        addLog(t('logOpponentReset'));
+        addLog({ key: 'logOpponentReset' });
         break;
       case 'JOIN':
-        addLog(t('logPlayerJoined'));
+        addLog({ key: 'logPlayerJoined' });
         // Reset game when second player joins for a fresh start
         resetGame();
         break;
@@ -427,14 +431,30 @@ const Game: React.FC = () => {
               {/* Log & Exit */}
               <div className='w-full bg-slate-900/60 backdrop-blur-md rounded-xl p-4 border border-slate-700/50 shadow-xl flex flex-col gap-3'>
                 <div className='h-24 overflow-y-auto space-y-1 pr-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent'>
-                  {logs.map((log, i) => (
-                    <div
-                      key={i}
-                      className='text-xs text-slate-400 font-mono border-l-2 border-slate-700 pl-2 py-0.5'
-                    >
-                      {log}
-                    </div>
-                  ))}
+                  {logs.map((log, i) => {
+                    const renderLog = (entry: LogEntry) => {
+                      const params: Record<string, string | number> = {};
+                      if (entry.params) {
+                        Object.entries(entry.params).forEach(([k, v]) => {
+                          if (v && typeof v === 'object' && v.key) {
+                            params[k] = t(v.key).toUpperCase();
+                          } else {
+                            params[k] = v;
+                          }
+                        });
+                      }
+                      return t(entry.key as any, params);
+                    };
+
+                    return (
+                      <div
+                        key={i}
+                        className='text-xs text-slate-400 font-mono border-l-2 border-slate-700 pl-2 py-0.5'
+                      >
+                        {renderLog(log)}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <button

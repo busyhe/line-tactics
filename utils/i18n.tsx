@@ -72,6 +72,9 @@ const translations = {
     footerCopyright: '© 2025 Line Tactics.',
     footerAuthor: '由 BusyHe 构建',
     footerSourceCode: '源代码',
+    blueWinsFull: '蓝方获胜！红方全军覆没。',
+    redWinsFull: '红方获胜！蓝方全军覆没。',
+    logThinking: '{color} {text}',
   },
   en: {
     title: 'Line Tactics',
@@ -142,6 +145,9 @@ const translations = {
     footerCopyright: '© 2025 Line Tactics.',
     footerAuthor: 'Built by BusyHe',
     footerSourceCode: 'Source Code',
+    blueWinsFull: 'Blue wins! Red eliminated.',
+    redWinsFull: 'Red wins! Blue eliminated.',
+    logThinking: '{color} {text}',
   },
 };
 

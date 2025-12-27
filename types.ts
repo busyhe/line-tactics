@@ -34,3 +34,8 @@ export interface PlayerState {
   id: string;
   color: Player | null; // null means spectator or not assigned yet
 }
+
+export interface LogEntry {
+  key: string;
+  params?: Record<string, any>;
+}
