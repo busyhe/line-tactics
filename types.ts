@@ -25,7 +25,7 @@ export type GameMode = 'local' | 'online' | 'bot';
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
 export interface NetworkMessage {
-  type: 'MOVE' | 'RESET' | 'JOIN' | 'SYNC' | 'ONLINE_COUNT';
+  type: 'MOVE' | 'RESET' | 'JOIN' | 'SYNC' | 'ONLINE_COUNT' | 'EMOJI';
   payload?: any;
   sender?: Player;
 }

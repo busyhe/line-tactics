@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Player } from '../types';
 import { useI18n } from '../utils/i18n';
 
@@ -7,26 +8,64 @@ interface InfoPanelProps {
   redCount: number;
   blueCount: number;
   myPlayer: Player | null;
+  activeEmojis: { red: string | null; blue: string | null };
+  onSendEmoji: (emoji: string) => void;
   winner: Player | null;
   onReset: () => void;
   onOpenRules: () => void;
 }
+
+const EMOJIS = ['😃', '😂', '👍', '👎', '🎯', '🔥'];
 
 const InfoPanel: React.FC<InfoPanelProps> = ({
   turn,
   redCount,
   blueCount,
   myPlayer,
+  activeEmojis,
+  onSendEmoji,
   winner,
   onReset,
   onOpenRules,
 }) => {
   const { t } = useI18n();
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
+
+  const handleEmojiClick = (emoji: string) => {
+    if (cooldown > 0) return;
+    onSendEmoji(emoji);
+    setCooldown(3); // 3 seconds cooldown
+  };
+
+  const EmojiBubble = ({ emoji }: { emoji: string | null }) => (
+    <AnimatePresence>
+      {emoji && (
+        <motion.div
+          initial={{ opacity: 0, y: 10, scale: 0.5 }}
+          animate={{ opacity: 1, y: -45, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.5, y: -60 }}
+          className='absolute left-1/2 -translate-x-1/2 z-30 pointer-events-none'
+        >
+          <div className='bg-slate-800 border-2 border-indigo-500/50 rounded-2xl p-2 shadow-2xl backdrop-blur-sm relative'>
+            <span className='text-2xl leading-none'>{emoji}</span>
+            <div className='absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 border-r-2 border-b-2 border-indigo-500/50 rotate-45'></div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 
   return (
     <div className='flex flex-col gap-4 w-full'>
       {/* Score Card */}
-      <div className='relative overflow-hidden bg-slate-800 rounded-2xl border border-slate-700 shadow-xl'>
+      <div className='relative bg-slate-800 rounded-2xl border border-slate-700 shadow-xl'>
         {/* Active Turn Highlight Background */}
         <div
           className={`absolute inset-0 transition-colors duration-500 ${
@@ -46,6 +85,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
             }`}
           >
             <div className='relative'>
+              <EmojiBubble emoji={activeEmojis.red} />
               <div
                 className={`w-12 h-12 rounded-full bg-gradient-to-br from-red-400 to-red-700 shadow-lg mb-2 flex items-center justify-center border-2 ${
                   turn === 'red' ? 'border-white' : 'border-transparent'
@@ -100,6 +140,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
             }`}
           >
             <div className='relative'>
+              <EmojiBubble emoji={activeEmojis.blue} />
               <div
                 className={`w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-700 shadow-lg mb-2 flex items-center justify-center border-2 ${
                   turn === 'blue' ? 'border-white' : 'border-transparent'
@@ -126,6 +167,31 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Emoji Bar (only in online mode for myPlayer) */}
+      {myPlayer && (
+        <div className='flex items-center justify-between bg-slate-900/40 backdrop-blur-sm rounded-xl p-2 border border-slate-700/50'>
+          <div className='flex gap-1.5'>
+            {EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                onClick={() => handleEmojiClick(emoji)}
+                disabled={cooldown > 0}
+                className={`text-xl p-1 hover:scale-125 transition-transform disabled:opacity-30 disabled:grayscale disabled:hover:scale-100 ${
+                  cooldown > 0 ? 'cursor-not-allowed' : 'cursor-pointer'
+                }`}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+          {cooldown > 0 && (
+            <div className='px-2 py-1 bg-slate-800 rounded text-[10px] font-bold text-indigo-400 tabular-nums'>
+              {cooldown}s
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Control Buttons */}
       <div className='grid grid-cols-2 gap-3'>

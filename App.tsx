@@ -38,6 +38,10 @@ const Game: React.FC = () => {
   const [lastMove, setLastMove] = useState<Point | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [rulesOpen, setRulesOpen] = useState<boolean>(false);
+  const [activeEmojis, setActiveEmojis] = useState<{
+    red: string | null;
+    blue: string | null;
+  }>({ red: null, blue: null });
 
   // --- Network State ---
   const [myPlayer, setMyPlayer] = useState<Player | null>(null); // null = local (both)
@@ -235,6 +239,23 @@ const Game: React.FC = () => {
     }
   };
 
+  const handleEmoji = (player: Player, emoji: string) => {
+    setActiveEmojis((prev) => ({ ...prev, [player]: emoji }));
+    setTimeout(() => {
+      setActiveEmojis((prev) => ({ ...prev, [player]: null }));
+    }, 3000);
+  };
+
+  const sendEmoji = (emoji: string) => {
+    if (!myPlayer || gameMode !== 'online') return;
+    handleEmoji(myPlayer, emoji);
+    networkRef.current?.send({
+      type: 'EMOJI',
+      payload: emoji,
+      sender: myPlayer,
+    });
+  };
+
   // --- Core Game Loop ---
   const handlePieceClick = (r: number, c: number) => {
     if (winner) return;
@@ -333,6 +354,11 @@ const Game: React.FC = () => {
           setOnlineCount(msg.payload);
         }
         break;
+      case 'EMOJI':
+        if (msg.sender && msg.payload) {
+          handleEmoji(msg.sender, msg.payload);
+        }
+        break;
     }
   };
 
@@ -425,6 +451,8 @@ const Game: React.FC = () => {
                 redCount={redCount}
                 blueCount={blueCount}
                 myPlayer={myPlayer}
+                activeEmojis={activeEmojis}
+                onSendEmoji={sendEmoji}
                 winner={winner}
                 onReset={handleResetRequest}
                 onOpenRules={() => setRulesOpen(true)}
