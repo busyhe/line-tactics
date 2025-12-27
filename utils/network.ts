@@ -22,11 +22,18 @@ export class NetworkService {
 
   // Read WebSocket URL from environment variable
   private wsUrl = import.meta.env.VITE_WS_URL || '';
-  private useWebSocket = !!this.wsUrl;
 
+  // Auto-detect URL from browser location if not configured
   constructor(onMessage: MessageCallback) {
     this.onMessage = onMessage;
+
+    if (!this.wsUrl && typeof window !== 'undefined') {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      this.wsUrl = `${protocol}//${window.location.host}/websocket`;
+    }
   }
+
+  private useWebSocket = true; // Always try WebSocket first if auto-detected
 
   connect(roomId: string) {
     this.roomId = roomId;
