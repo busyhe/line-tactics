@@ -42,6 +42,8 @@ const Game: React.FC = () => {
     red: string | null;
     blue: string | null;
   }>({ red: null, blue: null });
+  const [isOpponentOnline, setIsOpponentOnline] = useState<boolean>(false);
+  const lastOpponentActivity = useRef<number>(0);
 
   // --- Network State ---
   const [myPlayer, setMyPlayer] = useState<Player | null>(null); // null = local (both)
@@ -89,15 +91,86 @@ const Game: React.FC = () => {
     boardRef.current = board;
   }, [board]);
 
+  // Global Presence Heartbeat (Total site visitors)
+  const sessionId = React.useRef(Math.random().toString(36).substring(2, 11));
+  useEffect(() => {
+    const apiBaseUrl =
+      import.meta.env.VITE_WS_URL?.replace('wss://', 'https://')
+        .replace('ws://', 'http://')
+        .replace('/websocket', '') || '';
+    if (!apiBaseUrl) return;
+
+    const updatePresence = async (action: 'join' | 'leave') => {
+      try {
+        const response = await fetch(`${apiBaseUrl}/update-count`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: sessionId.current,
+            action,
+          }),
+        });
+        const data = await response.json();
+        if (data.totalOnlineCount !== undefined) {
+          setOnlineCount(data.totalOnlineCount);
+        }
+      } catch (e) {
+        // Silent fail
+      }
+    };
+
+    updatePresence('join');
+    const interval = setInterval(() => updatePresence('join'), 30 * 1000);
+
+    const handleBeforeUnload = () => updatePresence('leave');
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // WebSocket for real-time online count updates
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: any;
+
+    const connectWS = () => {
+      const wsUrl = import.meta.env.VITE_WS_URL?.replace(
+        '/websocket',
+        '/lobby-ws'
+      );
+      if (!wsUrl) return;
+
+      ws = new WebSocket(wsUrl);
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.totalOnlineCount !== undefined) {
+            setOnlineCount(data.totalOnlineCount);
+          }
+        } catch (e) {
+          // Silent fail
+        }
+      };
+      ws.onclose = () => {
+        reconnectTimeout = setTimeout(connectWS, 5000);
+      };
+    };
+
+    connectWS();
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      updatePresence('leave');
+      if (ws) ws.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    };
+  }, []);
+
   // Heartbeat to keep room alive during online game
   useEffect(() => {
     if (gameMode !== 'online' || !roomId || !myPlayer) return;
 
     const apiBaseUrl =
-      import.meta.env.VITE_WS_URL?.replace('wss://', 'https://').replace(
-        '/websocket',
-        ''
-      ) || '';
+      import.meta.env.VITE_WS_URL?.replace('wss://', 'https://')
+        .replace('ws://', 'http://')
+        .replace('/websocket', '') || '';
     if (!apiBaseUrl) return;
 
     const sendHeartbeat = async () => {
@@ -117,9 +190,21 @@ const Game: React.FC = () => {
     };
 
     // Send heartbeat every 5 seconds
-    const interval = setInterval(sendHeartbeat, 5 * 1000);
+    const interval = setInterval(() => {
+      sendHeartbeat();
+      // Also send PING over websocket to keep Durable Object alive and check connection
+      networkRef.current?.send({ type: 'PING', sender: myPlayer || undefined });
+
+      // Watchdog: If no message from opponent for 15 seconds, mark as offline
+      if (
+        isOpponentOnline &&
+        Date.now() - lastOpponentActivity.current > 15000
+      ) {
+        setIsOpponentOnline(false);
+      }
+    }, 5 * 1000);
     return () => clearInterval(interval);
-  }, [gameMode, roomId, myPlayer]);
+  }, [gameMode, roomId, myPlayer, isOpponentOnline]);
 
   // --- Bot Turn Handling ---
   useEffect(() => {
@@ -181,36 +266,49 @@ const Game: React.FC = () => {
     setGameMode('online');
     setRoomId(room);
 
-    // Assign player based on role (Host=Red, Join=Blue)
-    // Note: In a real server scenario, the server would assign this.
-    const playerRole = role === 'host' ? 'red' : 'blue';
-    setMyPlayer(playerRole);
-    addLog({
-      key: 'logJoinedRoom',
-      params: { room: room, role: { key: playerRole } },
-    });
-
     // Register with room registry
     const apiBaseUrl =
       import.meta.env.VITE_WS_URL?.replace('wss://', 'https://').replace(
         '/websocket',
         ''
       ) || '';
+
+    let finalPlayer = role === 'host' ? 'red' : 'blue';
+
     if (apiBaseUrl) {
       try {
-        await fetch(`${apiBaseUrl}/register`, {
+        const res = await fetch(`${apiBaseUrl}/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             roomId: room,
-            color: playerRole,
+            color: finalPlayer,
             action: 'join',
           }),
         });
+        const data = await res.json();
+
+        if (!data.success) {
+          if (data.error === 'ROOM_FULL') {
+            alert(t('roomFull'));
+            setGameMode('lobby');
+            return;
+          }
+        }
+
+        if (data.assignedColor) {
+          finalPlayer = data.assignedColor as Player;
+        }
       } catch (e) {
         console.error('Failed to register room:', e);
       }
     }
+
+    setMyPlayer(finalPlayer);
+    addLog({
+      key: 'logJoinedRoom',
+      params: { room: room, role: { key: finalPlayer } },
+    });
 
     // Init Network
     networkRef.current = new NetworkService((msg: NetworkMessage) => {
@@ -333,6 +431,12 @@ const Game: React.FC = () => {
 
   // --- Network Handlers ---
   const handleNetworkMessage = (msg: NetworkMessage) => {
+    // Record activity if from opponent
+    if (msg.sender && msg.sender !== myPlayer) {
+      lastOpponentActivity.current = Date.now();
+      setIsOpponentOnline(true);
+    }
+
     switch (msg.type) {
       case 'MOVE':
         if (msg.sender !== myPlayer) {
@@ -348,6 +452,17 @@ const Game: React.FC = () => {
         addLog({ key: 'logPlayerJoined' });
         // Reset game when second player joins for a fresh start
         resetGame();
+        setIsOpponentOnline(true);
+        // Respond to joining player so they know host is online
+        if (myPlayer === 'red') {
+          networkRef.current?.send({ type: 'PRESENCE', sender: 'red' });
+        }
+        break;
+      case 'PRESENCE':
+        setIsOpponentOnline(true);
+        break;
+      case 'PLAYER_LEFT':
+        setIsOpponentOnline(false);
         break;
       case 'ONLINE_COUNT':
         if (msg.payload !== undefined) {
@@ -358,6 +473,9 @@ const Game: React.FC = () => {
         if (msg.sender && msg.payload) {
           handleEmoji(msg.sender, msg.payload);
         }
+        break;
+      case 'PONG':
+        // Connection is alive
         break;
     }
   };
@@ -451,6 +569,7 @@ const Game: React.FC = () => {
                 redCount={redCount}
                 blueCount={blueCount}
                 myPlayer={myPlayer}
+                isOpponentOnline={isOpponentOnline}
                 activeEmojis={activeEmojis}
                 onSendEmoji={sendEmoji}
                 winner={winner}

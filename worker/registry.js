@@ -15,40 +15,50 @@ export class RoomRegistry {
   constructor(state, env) {
     this.state = state;
     this.env = env;
+    this.sessions = new Set();
   }
 
   async fetch(request) {
     const url = new URL(request.url);
 
+    // Handle WebSocket upgrade for Lobby
+    if (request.headers.get('Upgrade') === 'websocket') {
+      const pair = new WebSocketPair();
+      const [client, server] = Object.values(pair);
+
+      server.accept();
+      this.sessions.add(server);
+
+      server.addEventListener('close', () => {
+        this.sessions.delete(server);
+      });
+
+      // Clean up and send initial data immediately
+      const rooms = await this.cleanupRooms();
+      const totalOnlineCount = await this.state.storage.get('totalOnlineCount') || 0;
+      const data = this.prepareRoomData(rooms, totalOnlineCount);
+      server.send(JSON.stringify(data));
+
+      return new Response(null, { status: 101, webSocket: client });
+    }
+
+    // POST /rooms/clear - Manually clear all rooms
+    if (request.method === 'POST' && url.pathname === '/rooms/clear') {
+      await this.state.storage.put('rooms', {});
+      const totalOnlineCount = await this.state.storage.get('totalOnlineCount') || 0;
+      this.broadcastUpdate({}, totalOnlineCount);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     // GET /rooms - List all rooms that need players
     if (request.method === 'GET' && url.pathname === '/rooms') {
-      const rooms = await this.state.storage.get('rooms') || {};
+      const rooms = await this.cleanupRooms();
       const totalOnlineCount = await this.state.storage.get('totalOnlineCount') || 0;
-      const now = Date.now();
 
-      // Clean up expired rooms first
-      let hasExpired = false;
-      for (const [roomId, info] of Object.entries(rooms)) {
-        if (now - info.lastActivity > ROOM_TIMEOUT_MS) {
-          delete rooms[roomId];
-          hasExpired = true;
-        }
-      }
-      if (hasExpired) {
-        await this.state.storage.put('rooms', rooms);
-      }
-
-      // Filter rooms that are waiting for players (not full)
-      const availableRooms = Object.entries(rooms)
-        .filter(([_, info]) => !info.redPlayer || !info.bluePlayer)
-        .map(([roomId, info]) => ({
-          roomId,
-          hasRed: info.redPlayer,
-          hasBlue: info.bluePlayer,
-          createdAt: info.createdAt
-        }));
-
-      return new Response(JSON.stringify({ rooms: availableRooms, totalOnlineCount }), {
+      const data = this.prepareRoomData(rooms, totalOnlineCount);
+      return new Response(JSON.stringify(data), {
         headers: { 'Content-Type': 'application/json' }
       });
     }
@@ -57,6 +67,7 @@ export class RoomRegistry {
     if (request.method === 'POST' && url.pathname === '/register') {
       const { roomId, color, action } = await request.json();
       const rooms = await this.state.storage.get('rooms') || {};
+      const totalOnlineCount = await this.state.storage.get('totalOnlineCount') || 0;
       const now = Date.now();
 
       if (action === 'join') {
@@ -68,9 +79,28 @@ export class RoomRegistry {
             lastActivity: now
           };
         }
+
+        // Auto-assign color if requested color is taken
+        let finalColor = color;
+        if (color === 'red' && rooms[roomId].redPlayer) finalColor = 'blue';
+        if (color === 'blue' && rooms[roomId].bluePlayer) finalColor = 'red';
+
+        // Check if room is full
+        if (rooms[roomId].redPlayer && rooms[roomId].bluePlayer) {
+          return new Response(JSON.stringify({ success: false, error: 'ROOM_FULL' }), {
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+
         rooms[roomId].lastActivity = now;
-        if (color === 'red') rooms[roomId].redPlayer = true;
-        if (color === 'blue') rooms[roomId].bluePlayer = true;
+        if (finalColor === 'red') rooms[roomId].redPlayer = true;
+        if (finalColor === 'blue') rooms[roomId].bluePlayer = true;
+
+        await this.state.storage.put('rooms', rooms);
+        this.broadcastUpdate(rooms, totalOnlineCount);
+        return new Response(JSON.stringify({ success: true, assignedColor: finalColor }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
       } else if (action === 'leave') {
         if (rooms[roomId]) {
           if (color === 'red') rooms[roomId].redPlayer = false;
@@ -80,11 +110,14 @@ export class RoomRegistry {
           if (!rooms[roomId].redPlayer && !rooms[roomId].bluePlayer) {
             delete rooms[roomId];
           }
+          await this.state.storage.put('rooms', rooms);
+          this.broadcastUpdate(rooms, totalOnlineCount);
         }
       } else if (action === 'heartbeat') {
         // Update activity timestamp
         if (rooms[roomId]) {
           rooms[roomId].lastActivity = now;
+          await this.state.storage.put('rooms', rooms);
         }
       }
 
@@ -110,7 +143,6 @@ export class RoomRegistry {
       for (const [sid, lastSeen] of Object.entries(sessions)) {
         if (now - lastSeen > 120000) {
           delete sessions[sid];
-          changed = true;
         }
       }
 
@@ -118,11 +150,70 @@ export class RoomRegistry {
       await this.state.storage.put('globalSessions', sessions);
       await this.state.storage.put('totalOnlineCount', totalOnlineCount);
 
+      const rooms = await this.state.storage.get('rooms') || {};
+      this.broadcastUpdate(rooms, totalOnlineCount);
+
       return new Response(JSON.stringify({ totalOnlineCount }), {
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
     return new Response('Not Found', { status: 404 });
+  }
+
+  prepareRoomData(rooms, totalOnlineCount) {
+    const allRooms = Object.entries(rooms)
+      .map(([roomId, info]) => ({
+        roomId,
+        hasRed: info.redPlayer,
+        hasBlue: info.bluePlayer,
+        createdAt: info.createdAt,
+        isFull: info.redPlayer && info.bluePlayer,
+        isAvailable: !info.redPlayer || !info.bluePlayer
+      }));
+
+    // Sort: 
+    // 1. Available rooms first (one slot open)
+    // 2. Both slots taken (full)
+    // 3. Within groups, by createdAt descending (newest first)
+    allRooms.sort((a, b) => {
+      if (a.isAvailable && !b.isAvailable) return -1;
+      if (!a.isAvailable && b.isAvailable) return 1;
+      return b.createdAt - a.createdAt;
+    });
+
+    return { rooms: allRooms, totalOnlineCount };
+  }
+
+  broadcastUpdate(rooms, totalOnlineCount) {
+    const data = JSON.stringify(this.prepareRoomData(rooms, totalOnlineCount));
+    for (const ws of this.sessions) {
+      try {
+        ws.send(data);
+      } catch (e) {
+        console.error('Failed to send broadcast:', e);
+        this.sessions.delete(ws);
+      }
+    }
+  }
+
+  async cleanupRooms() {
+    const rooms = await this.state.storage.get('rooms') || {};
+    const totalOnlineCount = await this.state.storage.get('totalOnlineCount') || 0;
+    const now = Date.now();
+    let hasExpired = false;
+
+    for (const [roomId, info] of Object.entries(rooms)) {
+      if (now - info.lastActivity > ROOM_TIMEOUT_MS) {
+        delete rooms[roomId];
+        hasExpired = true;
+      }
+    }
+
+    if (hasExpired) {
+      await this.state.storage.put('rooms', rooms);
+      this.broadcastUpdate(rooms, totalOnlineCount);
+    }
+    return rooms;
   }
 }

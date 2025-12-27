@@ -8,6 +8,7 @@ interface InfoPanelProps {
   redCount: number;
   blueCount: number;
   myPlayer: Player | null;
+  isOpponentOnline: boolean;
   activeEmojis: { red: string | null; blue: string | null };
   onSendEmoji: (emoji: string) => void;
   winner: Player | null;
@@ -22,6 +23,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
   redCount,
   blueCount,
   myPlayer,
+  isOpponentOnline,
   activeEmojis,
   onSendEmoji,
   winner,
@@ -60,6 +62,25 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
         </motion.div>
       )}
     </AnimatePresence>
+  );
+
+  const StatusIndicator = ({ isOnline }: { isOnline: boolean }) => (
+    <div className='flex items-center gap-1 mt-1'>
+      <div
+        className={`w-1.5 h-1.5 rounded-full ${
+          isOnline
+            ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]'
+            : 'bg-slate-500'
+        }`}
+      />
+      <span
+        className={`text-[8px] font-black uppercase tracking-widest ${
+          isOnline ? 'text-green-400' : 'text-slate-400'
+        }`}
+      >
+        {t(isOnline ? 'statusOnline' : 'statusOffline')}
+      </span>
+    </div>
   );
 
   return (
@@ -109,6 +130,9 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
             <span className='text-3xl font-black text-white drop-shadow-md'>
               {redCount}
             </span>
+            {myPlayer === 'blue' && (
+              <StatusIndicator isOnline={isOpponentOnline} />
+            )}
           </div>
 
           {/* Center Status */}
@@ -164,6 +188,9 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
             <span className='text-3xl font-black text-white drop-shadow-md'>
               {blueCount}
             </span>
+            {myPlayer === 'red' && (
+              <StatusIndicator isOnline={isOpponentOnline} />
+            )}
           </div>
         </div>
       </div>

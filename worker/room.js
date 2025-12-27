@@ -30,14 +30,33 @@ export class GameRoom {
     const sessionId = crypto.randomUUID();
 
     server.accept();
-    this.sessions.set(server, { id: sessionId });
+    this.sessions.set(server, { id: sessionId, lastSeen: Date.now() });
     this.updateOnlineCount(sessionId, 'join');
 
     server.addEventListener('message', (event) => {
       try {
         const msg = JSON.parse(event.data);
+
+        // Handle Heartbeat
+        if (msg.type === 'PING') {
+          const session = this.sessions.get(server);
+          if (session) {
+            session.lastSeen = Date.now();
+            if (msg.sender) session.color = msg.sender;
+            server.send(JSON.stringify({ type: 'PONG' }));
+            if (session.color) {
+              this.broadcast({ type: 'PRESENCE', sender: session.color }, server);
+            }
+          }
+          return;
+        }
+
         // Add sender info and broadcast to all other clients
         msg.senderId = sessionId;
+        if (msg.sender) {
+          const session = this.sessions.get(server);
+          if (session) session.color = msg.sender;
+        }
         this.broadcast(msg, server);
       } catch (e) {
         console.error('Failed to parse message:', e);
@@ -45,18 +64,65 @@ export class GameRoom {
     });
 
     server.addEventListener('close', () => {
+      const session = this.sessions.get(server);
       this.sessions.delete(server);
       this.updateOnlineCount(sessionId, 'leave');
+
+      if (session && session.color) {
+        this.informRegistryOfLeave(session.color);
+      }
+
       // Notify others about disconnect
       this.broadcast({ type: 'PLAYER_LEFT', senderId: sessionId }, server);
     });
 
     server.addEventListener('error', () => {
+      const session = this.sessions.get(server);
       this.sessions.delete(server);
       this.updateOnlineCount(sessionId, 'leave');
+      if (session && session.color) {
+        this.informRegistryOfLeave(session.color);
+      }
     });
 
+    // Stale connection cleanup timer (Check every 5 seconds)
+    const cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      for (const [ws, session] of this.sessions.entries()) {
+        if (now - session.lastSeen > 10000) { // 10 seconds timeout
+          ws.close(1001, "Stale connection");
+          this.sessions.delete(ws);
+          this.updateOnlineCount(session.id, 'leave');
+          if (session.color) {
+            this.informRegistryOfLeave(session.color);
+          }
+          this.broadcast({ type: 'PLAYER_LEFT', senderId: session.id });
+        }
+      }
+      if (this.sessions.size === 0) {
+        clearInterval(cleanupInterval);
+      }
+    }, 5000);
+
     return new Response(null, { status: 101, webSocket: client });
+  }
+
+  async informRegistryOfLeave(color) {
+    const registryId = this.env.ROOM_REGISTRY.idFromName('global');
+    const registry = this.env.ROOM_REGISTRY.get(registryId);
+    try {
+      await registry.fetch(new Request('http://internal/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: this.roomId,
+          color,
+          action: 'leave'
+        })
+      }));
+    } catch (e) {
+      console.error('Failed to notify registry of player leave:', e);
+    }
   }
 
   async updateOnlineCount(sessionId, action) {

@@ -24,11 +24,31 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
+    // Lobby WebSocket endpoint: /lobby-ws
+    if (url.pathname === '/lobby-ws') {
+      const registryId = env.ROOM_REGISTRY.idFromName('global');
+      const registry = env.ROOM_REGISTRY.get(registryId);
+      return registry.fetch(request);
+    }
+
     // Room list endpoint: GET /rooms
     if (url.pathname === '/rooms' && request.method === 'GET') {
       const registryId = env.ROOM_REGISTRY.idFromName('global');
       const registry = env.ROOM_REGISTRY.get(registryId);
       const response = await registry.fetch(new Request('http://internal/rooms'));
+      const data = await response.json();
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Clear rooms endpoint: POST /rooms/clear
+    if (url.pathname === '/rooms/clear' && request.method === 'POST') {
+      const registryId = env.ROOM_REGISTRY.idFromName('global');
+      const registry = env.ROOM_REGISTRY.get(registryId);
+      const response = await registry.fetch(new Request('http://internal/rooms/clear', {
+        method: 'POST'
+      }));
       const data = await response.json();
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

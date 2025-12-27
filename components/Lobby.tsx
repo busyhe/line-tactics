@@ -36,10 +36,9 @@ const Lobby: React.FC<LobbyProps> = ({
 
   // Base URL for API (same origin as WebSocket but HTTP)
   const apiBaseUrl =
-    import.meta.env.VITE_WS_URL?.replace('wss://', 'https://').replace(
-      '/websocket',
-      ''
-    ) || '';
+    import.meta.env.VITE_WS_URL?.replace('wss://', 'https://')
+      .replace('ws://', 'http://')
+      .replace('/websocket', '') || '';
 
   // Fetch available rooms (silent refresh after first load)
   const isFirstLoad = React.useRef(true);
@@ -71,10 +70,10 @@ const Lobby: React.FC<LobbyProps> = ({
 
   useEffect(() => {
     if (mode === 'online-setup') {
-      isFirstLoad.current = true; // Reset on mode change
+      isFirstLoad.current = true;
       fetchRooms();
-      // Refresh every 5 seconds
-      const interval = setInterval(fetchRooms, 5000);
+      // Refresh every 3 seconds
+      const interval = setInterval(fetchRooms, 3000);
       return () => clearInterval(interval);
     }
   }, [mode]);
@@ -86,6 +85,9 @@ const Lobby: React.FC<LobbyProps> = ({
   };
 
   const handleQuickJoin = (room: RoomInfo) => {
+    // Check if room is actually full (safety check)
+    if (room.hasRed && room.hasBlue) return;
+
     // Auto-select available color and join directly
     const color = !room.hasRed ? 'red' : 'blue';
     const role = color === 'red' ? 'host' : 'join';
@@ -312,7 +314,12 @@ const Lobby: React.FC<LobbyProps> = ({
                   <button
                     key={room.roomId}
                     onClick={() => handleQuickJoin(room)}
-                    className='w-full p-3 bg-slate-700/50 hover:bg-slate-600/50 rounded-lg border border-slate-600 transition-all text-left flex items-center justify-between'
+                    disabled={room.hasRed && room.hasBlue}
+                    className={`w-full p-3 bg-slate-700/50 hover:bg-slate-600/50 rounded-lg border border-slate-600 transition-all text-left flex items-center justify-between ${
+                      room.hasRed && room.hasBlue
+                        ? 'opacity-40 cursor-not-allowed'
+                        : 'cursor-pointer'
+                    }`}
                   >
                     <span className='font-mono font-bold text-cyan-300'>
                       {room.roomId}

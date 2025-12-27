@@ -79,6 +79,9 @@ const translations = {
     victory: '胜利',
     defeat: '失败',
     playAgain: '再来一局',
+    statusOnline: '在线',
+    statusOffline: '离线',
+    roomFull: '房间已满，请选择其他房间。',
   },
   en: {
     title: 'Line Tactics',
@@ -156,6 +159,9 @@ const translations = {
     victory: 'VICTORY',
     defeat: 'DEFEAT',
     playAgain: 'PLAY AGAIN',
+    statusOnline: 'ONLINE',
+    statusOffline: 'OFFLINE',
+    roomFull: 'Room is full, please choose another room.',
   },
 };
 
