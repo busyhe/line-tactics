@@ -84,23 +84,58 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
     setCooldown(3); // 3 seconds cooldown
   };
 
-  const EmojiBubble = ({ emoji }: { emoji: string | null }) => (
-    <AnimatePresence>
-      {emoji && (
-        <motion.div
-          initial={{ opacity: 0, y: 10, scale: 0.5 }}
-          animate={{ opacity: 1, y: -45, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.5, y: -60 }}
-          className='absolute left-1/2 -translate-x-1/2 z-30 pointer-events-none'
-        >
-          <div className='bg-slate-800 border-2 border-indigo-500/50 rounded-2xl p-2 shadow-2xl backdrop-blur-sm relative'>
-            <span className='text-2xl leading-none'>{emoji}</span>
-            <div className='absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 border-r-2 border-b-2 border-indigo-500/50 rotate-45'></div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+  const EmojiBubble = ({
+    emoji,
+    direction = 'up',
+  }: {
+    emoji: string | null;
+    direction?: 'up' | 'left';
+  }) => {
+    const isLeft = direction === 'left';
+    return (
+      <AnimatePresence>
+        {emoji && (
+          <motion.div
+            initial={{
+              opacity: 0,
+              scale: 0.5,
+              x: isLeft ? 10 : 0,
+              y: isLeft ? 0 : 10,
+              rotate: isLeft ? 0 : 0,
+            }}
+            animate={{
+              opacity: 1,
+              scale: 1,
+              x: isLeft ? -70 : 20,
+              y: isLeft ? -40 : -40,
+              rotate: isLeft ? 45 : 45,
+            }}
+            exit={{
+              opacity: 0,
+              scale: 0.5,
+              x: isLeft ? -60 : 0,
+              y: isLeft ? 0 : -60,
+              rotate: isLeft ? 0 : 0,
+            }}
+            className='absolute left-1/2 -translate-x-1/2 z-30 pointer-events-none'
+          >
+            <div className='bg-slate-800 border-2 border-indigo-500/50 rounded-2xl p-2 shadow-2xl backdrop-blur-sm relative'>
+              <span className='block text-2xl leading-none -rotate-45'>
+                {emoji}
+              </span>
+              <div
+                className={`absolute w-3 h-3 bg-slate-800 border-indigo-500/50 rotate-45 ${
+                  isLeft
+                    ? 'top-1/2 -right-1.5 -translate-y-1/2 border-t-2 border-r-2'
+                    : 'bottom-[-6px] left-1/2 -translate-x-1/2 border-r-2 border-b-2'
+                }`}
+              ></div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  };
 
   const StatusIndicator = ({ isOnline }: { isOnline: boolean }) => (
     <div className='flex items-center gap-1 mt-1'>
@@ -202,7 +237,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
             }`}
           >
             <div className='relative'>
-              <EmojiBubble emoji={activeEmojis.blue} />
+              <EmojiBubble emoji={activeEmojis.blue} direction='left' />
               <div
                 className={`w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-700 shadow-lg mb-2 flex items-center justify-center border-2 ${
                   turn === 'blue' ? 'border-white' : 'border-transparent'
