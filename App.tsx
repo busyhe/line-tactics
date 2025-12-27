@@ -115,13 +115,17 @@ const Game: React.FC = () => {
     let reconnectTimeout: any;
 
     const connectWS = () => {
-      const wsUrl = import.meta.env.VITE_WS_URL?.replace(
-        '/websocket',
-        '/lobby-ws'
-      );
-      if (!wsUrl) return;
+      let wsUrl = import.meta.env.VITE_WS_URL;
 
-      ws = new WebSocket(wsUrl);
+      // Auto-detect URL if not configured (useful for custom domains in China)
+      if (!wsUrl) {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        wsUrl = `${protocol}//${window.location.host}/websocket`;
+      }
+
+      const lobbyWsUrl = wsUrl.replace('/websocket', '/lobby-ws');
+
+      ws = new WebSocket(lobbyWsUrl);
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
@@ -149,13 +153,21 @@ const Game: React.FC = () => {
   useEffect(() => {
     if (gameMode !== 'online' || !roomId || !myPlayer) return;
 
-    const apiBaseUrl =
-      import.meta.env.VITE_WS_URL?.replace('wss://', 'https://')
-        .replace('ws://', 'http://')
-        .replace('/websocket', '') || '';
-    if (!apiBaseUrl) return;
-
     const sendHeartbeat = async () => {
+      const wsUrl = import.meta.env.VITE_WS_URL;
+      let apiBaseUrl = '';
+
+      if (wsUrl) {
+        apiBaseUrl = wsUrl
+          .replace('wss://', 'https://')
+          .replace('ws://', 'http://')
+          .replace('/websocket', '');
+      } else {
+        apiBaseUrl = `${window.location.protocol}//${window.location.host}`;
+      }
+
+      if (!apiBaseUrl) return;
+
       try {
         await fetch(`${apiBaseUrl}/register`, {
           method: 'POST',
@@ -210,11 +222,19 @@ const Game: React.FC = () => {
   // Unregister from room when leaving
   const unregisterFromRoom = async () => {
     if (!roomId || !myPlayer) return;
-    const apiBaseUrl =
-      import.meta.env.VITE_WS_URL?.replace('wss://', 'https://').replace(
-        '/websocket',
-        ''
-      ) || '';
+
+    const wsUrl = import.meta.env.VITE_WS_URL;
+    let apiBaseUrl = '';
+
+    if (wsUrl) {
+      apiBaseUrl = wsUrl
+        .replace('wss://', 'https://')
+        .replace('ws://', 'http://')
+        .replace('/websocket', '');
+    } else {
+      apiBaseUrl = `${window.location.protocol}//${window.location.host}`;
+    }
+
     if (apiBaseUrl) {
       try {
         await fetch(`${apiBaseUrl}/register`, {
@@ -248,12 +268,17 @@ const Game: React.FC = () => {
     setGameMode('online');
     setRoomId(room);
 
-    // Register with room registry
-    const apiBaseUrl =
-      import.meta.env.VITE_WS_URL?.replace('wss://', 'https://').replace(
-        '/websocket',
-        ''
-      ) || '';
+    const wsUrl = import.meta.env.VITE_WS_URL;
+    let apiBaseUrl = '';
+
+    if (wsUrl) {
+      apiBaseUrl = wsUrl
+        .replace('wss://', 'https://')
+        .replace('ws://', 'http://')
+        .replace('/websocket', '');
+    } else {
+      apiBaseUrl = `${window.location.protocol}//${window.location.host}`;
+    }
 
     let finalPlayer = role === 'host' ? 'red' : 'blue';
 

@@ -33,10 +33,17 @@ const Lobby: React.FC<LobbyProps> = ({
   const [loading, setLoading] = useState(false);
 
   // Base URL for API (same origin as WebSocket but HTTP)
-  const apiBaseUrl =
-    import.meta.env.VITE_WS_URL?.replace('wss://', 'https://')
+  const wsUrl = import.meta.env.VITE_WS_URL;
+  let apiBaseUrl = '';
+
+  if (wsUrl) {
+    apiBaseUrl = wsUrl
+      .replace('wss://', 'https://')
       .replace('ws://', 'http://')
-      .replace('/websocket', '') || '';
+      .replace('/websocket', '');
+  } else {
+    apiBaseUrl = `${window.location.protocol}//${window.location.host}`;
+  }
 
   // Fetch available rooms (silent refresh after first load)
   const isFirstLoad = React.useRef(true);
