@@ -69,6 +69,9 @@ const translations = {
     botThinking: '机器人正在思考...',
     botWins: '机器人获胜！',
     playerWins: '恭喜！你击败了机器人。',
+    footerCopyright: '© 2025 Line Tactics.',
+    footerAuthor: '由 BusyHe 构建',
+    footerSourceCode: '源代码',
   },
   en: {
     title: 'Line Tactics',
@@ -136,6 +139,9 @@ const translations = {
     botThinking: 'Bot is thinking...',
     botWins: 'Bot wins!',
     playerWins: 'Congratulations! You beat the bot.',
+    footerCopyright: '© 2025 Line Tactics.',
+    footerAuthor: 'Built by BusyHe',
+    footerSourceCode: 'Source Code',
   },
 };
 
