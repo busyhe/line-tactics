@@ -6,6 +6,7 @@ interface InfoPanelProps {
   turn: Player;
   redCount: number;
   blueCount: number;
+  myPlayer: Player | null;
   winner: Player | null;
   onReset: () => void;
   onOpenRules: () => void;
@@ -15,6 +16,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
   turn,
   redCount,
   blueCount,
+  myPlayer,
   winner,
   onReset,
   onOpenRules,
@@ -56,6 +58,11 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
                   {t('turnIndicator', { color: '' })
                     .replace("'s Turn", '')
                     .replace('方回合', '')}
+                </div>
+              )}
+              {myPlayer === 'red' && (
+                <div className='absolute -top-1 -right-1 text-[8px] bg-indigo-500 text-white font-black px-1.5 py-0.5 rounded-full shadow-lg border border-indigo-400 animate-in fade-in zoom-in duration-300'>
+                  {t('me')}
                 </div>
               )}
             </div>
@@ -105,6 +112,11 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
                   {t('turnIndicator', { color: '' })
                     .replace("'s Turn", '')
                     .replace('方回合', '')}
+                </div>
+              )}
+              {myPlayer === 'blue' && (
+                <div className='absolute -top-1 -right-1 text-[8px] bg-indigo-500 text-white font-black px-1.5 py-0.5 rounded-full shadow-lg border border-indigo-400 animate-in fade-in zoom-in duration-300'>
+                  {t('me')}
                 </div>
               )}
             </div>

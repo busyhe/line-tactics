@@ -423,6 +423,7 @@ const Game: React.FC = () => {
                 turn={turn}
                 redCount={redCount}
                 blueCount={blueCount}
+                myPlayer={myPlayer}
                 winner={winner}
                 onReset={handleResetRequest}
                 onOpenRules={() => setRulesOpen(true)}

@@ -75,6 +75,7 @@ const translations = {
     blueWinsFull: '蓝方获胜！红方全军覆没。',
     redWinsFull: '红方获胜！蓝方全军覆没。',
     logThinking: '{color} {text}',
+    me: '我',
   },
   en: {
     title: 'Line Tactics',
@@ -148,6 +149,7 @@ const translations = {
     blueWinsFull: 'Blue wins! Red eliminated.',
     redWinsFull: 'Red wins! Blue eliminated.',
     logThinking: '{color} {text}',
+    me: 'ME',
   },
 };
 
