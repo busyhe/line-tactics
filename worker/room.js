@@ -12,7 +12,13 @@ export class GameRoom {
   }
 
   async fetch(request) {
-    const _url = new URL(request.url);
+    const url = new URL(request.url);
+
+    // Store roomId from query params for later use in informRegistryOfLeave
+    const roomId = url.searchParams.get('room');
+    if (roomId) {
+      this.roomId = roomId;
+    }
 
     // Handle WebSocket upgrade
     if (request.headers.get('Upgrade') === 'websocket') {
