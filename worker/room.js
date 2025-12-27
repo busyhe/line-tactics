@@ -31,7 +31,6 @@ export class GameRoom {
 
     server.accept();
     this.sessions.set(server, { id: sessionId, lastSeen: Date.now() });
-    this.updateOnlineCount(sessionId, 'join');
 
     server.addEventListener('message', (event) => {
       try {
@@ -66,7 +65,6 @@ export class GameRoom {
     server.addEventListener('close', () => {
       const session = this.sessions.get(server);
       this.sessions.delete(server);
-      this.updateOnlineCount(sessionId, 'leave');
 
       if (session && session.color) {
         this.informRegistryOfLeave(session.color);
@@ -79,7 +77,6 @@ export class GameRoom {
     server.addEventListener('error', () => {
       const session = this.sessions.get(server);
       this.sessions.delete(server);
-      this.updateOnlineCount(sessionId, 'leave');
       if (session && session.color) {
         this.informRegistryOfLeave(session.color);
       }
@@ -92,7 +89,6 @@ export class GameRoom {
         if (now - session.lastSeen > 10000) { // 10 seconds timeout
           ws.close(1001, "Stale connection");
           this.sessions.delete(ws);
-          this.updateOnlineCount(session.id, 'leave');
           if (session.color) {
             this.informRegistryOfLeave(session.color);
           }
@@ -122,23 +118,6 @@ export class GameRoom {
       }));
     } catch (e) {
       console.error('Failed to notify registry of player leave:', e);
-    }
-  }
-
-  async updateOnlineCount(sessionId, action) {
-    try {
-      const registryId = this.env.ROOM_REGISTRY.idFromName('global');
-      const registry = this.env.ROOM_REGISTRY.get(registryId);
-      const response = await registry.fetch(new Request('http://internal/update-count', {
-        method: 'POST',
-        body: JSON.stringify({ sessionId, action })
-      }));
-      const { totalOnlineCount } = await response.json();
-
-      // Broadcast the new count to all clients in this room
-      this.broadcast({ type: 'ONLINE_COUNT', payload: totalOnlineCount });
-    } catch (e) {
-      console.error('Failed to update online count:', e);
     }
   }
 

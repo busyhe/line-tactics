@@ -29,15 +29,21 @@ export class RoomRegistry {
       server.accept();
       this.sessions.add(server);
 
-      server.addEventListener('close', () => {
-        this.sessions.delete(server);
-      });
-
       // Clean up and send initial data immediately
       const rooms = await this.cleanupRooms();
-      const totalOnlineCount = await this.state.storage.get('totalOnlineCount') || 0;
+      const totalOnlineCount = this.sessions.size;
       const data = this.prepareRoomData(rooms, totalOnlineCount);
       server.send(JSON.stringify(data));
+
+      // Broadcast update when someone joins
+      this.broadcastUpdate(rooms, totalOnlineCount);
+
+      server.addEventListener('close', async () => {
+        this.sessions.delete(server);
+        // Broadcast update when someone leaves
+        const currentRooms = await this.state.storage.get('rooms') || {};
+        this.broadcastUpdate(currentRooms, this.sessions.size);
+      });
 
       return new Response(null, { status: 101, webSocket: client });
     }
@@ -45,8 +51,7 @@ export class RoomRegistry {
     // POST /rooms/clear - Manually clear all rooms
     if (request.method === 'POST' && url.pathname === '/rooms/clear') {
       await this.state.storage.put('rooms', {});
-      const totalOnlineCount = await this.state.storage.get('totalOnlineCount') || 0;
-      this.broadcastUpdate({}, totalOnlineCount);
+      this.broadcastUpdate({}, this.sessions.size);
       return new Response(JSON.stringify({ success: true }), {
         headers: { 'Content-Type': 'application/json' }
       });
@@ -55,9 +60,7 @@ export class RoomRegistry {
     // GET /rooms - List all rooms that need players
     if (request.method === 'GET' && url.pathname === '/rooms') {
       const rooms = await this.cleanupRooms();
-      const totalOnlineCount = await this.state.storage.get('totalOnlineCount') || 0;
-
-      const data = this.prepareRoomData(rooms, totalOnlineCount);
+      const data = this.prepareRoomData(rooms, this.sessions.size);
       return new Response(JSON.stringify(data), {
         headers: { 'Content-Type': 'application/json' }
       });
@@ -67,7 +70,7 @@ export class RoomRegistry {
     if (request.method === 'POST' && url.pathname === '/register') {
       const { roomId, color, action } = await request.json();
       const rooms = await this.state.storage.get('rooms') || {};
-      const totalOnlineCount = await this.state.storage.get('totalOnlineCount') || 0;
+      const totalOnlineCount = this.sessions.size;
       const now = Date.now();
 
       if (action === 'join') {
@@ -127,32 +130,9 @@ export class RoomRegistry {
       });
     }
 
-    // POST /update-count - Update global session count from a room
+    // POST /update-count - Return current global session count
     if (request.method === 'POST' && url.pathname === '/update-count') {
-      const { sessionId, action } = await request.json();
-      let sessions = await this.state.storage.get('globalSessions') || {};
-
-      const now = Date.now();
-      if (action === 'join') {
-        sessions[sessionId] = now;
-      } else if (action === 'leave') {
-        delete sessions[sessionId];
-      }
-
-      // Cleanup old sessions (older than 2 minutes)
-      for (const [sid, lastSeen] of Object.entries(sessions)) {
-        if (now - lastSeen > 120000) {
-          delete sessions[sid];
-        }
-      }
-
-      const totalOnlineCount = Object.keys(sessions).length;
-      await this.state.storage.put('globalSessions', sessions);
-      await this.state.storage.put('totalOnlineCount', totalOnlineCount);
-
-      const rooms = await this.state.storage.get('rooms') || {};
-      this.broadcastUpdate(rooms, totalOnlineCount);
-
+      const totalOnlineCount = this.sessions.size;
       return new Response(JSON.stringify({ totalOnlineCount }), {
         headers: { 'Content-Type': 'application/json' }
       });
@@ -199,7 +179,7 @@ export class RoomRegistry {
 
   async cleanupRooms() {
     const rooms = await this.state.storage.get('rooms') || {};
-    const totalOnlineCount = await this.state.storage.get('totalOnlineCount') || 0;
+    const totalOnlineCount = this.sessions.size;
     const now = Date.now();
     let hasExpired = false;
 

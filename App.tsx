@@ -91,40 +91,7 @@ const Game: React.FC = () => {
     boardRef.current = board;
   }, [board]);
 
-  // Global Presence Heartbeat (Total site visitors)
-  const sessionId = React.useRef(Math.random().toString(36).substring(2, 11));
   useEffect(() => {
-    const apiBaseUrl =
-      import.meta.env.VITE_WS_URL?.replace('wss://', 'https://')
-        .replace('ws://', 'http://')
-        .replace('/websocket', '') || '';
-    if (!apiBaseUrl) return;
-
-    const updatePresence = async (action: 'join' | 'leave') => {
-      try {
-        const response = await fetch(`${apiBaseUrl}/update-count`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionId: sessionId.current,
-            action,
-          }),
-        });
-        const data = await response.json();
-        if (data.totalOnlineCount !== undefined) {
-          setOnlineCount(data.totalOnlineCount);
-        }
-      } catch (e) {
-        // Silent fail
-      }
-    };
-
-    updatePresence('join');
-    const interval = setInterval(() => updatePresence('join'), 30 * 1000);
-
-    const handleBeforeUnload = () => updatePresence('leave');
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
     // WebSocket for real-time online count updates
     let ws: WebSocket | null = null;
     let reconnectTimeout: any;
@@ -155,9 +122,6 @@ const Game: React.FC = () => {
     connectWS();
 
     return () => {
-      clearInterval(interval);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      updatePresence('leave');
       if (ws) ws.close();
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
     };
@@ -464,11 +428,6 @@ const Game: React.FC = () => {
       case 'PLAYER_LEFT':
         setIsOpponentOnline(false);
         break;
-      case 'ONLINE_COUNT':
-        if (msg.payload !== undefined) {
-          setOnlineCount(msg.payload);
-        }
-        break;
       case 'EMOJI':
         if (msg.sender && msg.payload) {
           handleEmoji(msg.sender, msg.payload);
@@ -543,7 +502,6 @@ const Game: React.FC = () => {
             onJoinLocal={startLocalGame}
             onJoinBot={startBotGame}
             onJoinOnline={startOnlineGame}
-            onOnlineCountUpdate={setOnlineCount}
           />
         ) : (
           <div className='w-full flex flex-col lg:flex-row items-center lg:items-start justify-center gap-8 lg:gap-16'>
