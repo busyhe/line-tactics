@@ -18,6 +18,7 @@ import GridBoard from './components/GridBoard';
 import InfoPanel from './components/InfoPanel';
 import RulesModal from './components/RulesModal';
 import Lobby from './components/Lobby';
+import GameResult from './components/GameResult';
 import { I18nProvider, useI18n } from './utils/i18n';
 import { getBotMove } from './utils/ai';
 import { Difficulty } from './types';
@@ -474,6 +475,12 @@ const Game: React.FC = () => {
       </main>
 
       <RulesModal isOpen={rulesOpen} onClose={() => setRulesOpen(false)} />
+
+      <GameResult
+        winner={winner}
+        myPlayer={myPlayer}
+        onReset={handleResetRequest}
+      />
 
       {/* Footer */}
       <footer className='relative z-20 w-full py-8 text-center border-t border-slate-800/50 mt-auto'>

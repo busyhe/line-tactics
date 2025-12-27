@@ -76,6 +76,9 @@ const translations = {
     redWinsFull: '红方获胜！蓝方全军覆没。',
     logThinking: '{color} {text}',
     me: '我',
+    victory: '胜利',
+    defeat: '失败',
+    playAgain: '再来一局',
   },
   en: {
     title: 'Line Tactics',
@@ -150,6 +153,9 @@ const translations = {
     redWinsFull: 'Red wins! Blue eliminated.',
     logThinking: '{color} {text}',
     me: 'ME',
+    victory: 'VICTORY',
+    defeat: 'DEFEAT',
+    playAgain: 'PLAY AGAIN',
   },
 };
 
