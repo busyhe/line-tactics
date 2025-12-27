@@ -12,11 +12,14 @@ import InfoPanel from './components/InfoPanel';
 import RulesModal from './components/RulesModal';
 import Lobby from './components/Lobby';
 import { I18nProvider, useI18n } from './utils/i18n';
+import { getBotMove } from './utils/ai';
+import { Difficulty } from './types';
 
 const Game: React.FC = () => {
   const { t, lang, setLang } = useI18n();
   // --- Game State ---
   const [gameMode, setGameMode] = useState<GameMode | 'lobby'>('lobby');
+  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [board, setBoard] = useState<BoardState>(createInitialBoard());
   const [turn, setTurn] = useState<Player>('red');
   const [winner, setWinner] = useState<Player | null>(null);
@@ -105,6 +108,28 @@ const Game: React.FC = () => {
     return () => clearInterval(interval);
   }, [gameMode, roomId, myPlayer]);
 
+  // --- Bot Turn Handling ---
+  useEffect(() => {
+    if (gameMode !== 'bot' || winner || turn === 'red') return;
+
+    // Simulate thinking delay
+    const timer = setTimeout(() => {
+      const move = getBotMove(board, 'blue', difficulty);
+      if (move) {
+        executeMove(move);
+        addLog(
+          t('logCaptured', { color: t('blue').toUpperCase(), count: 0 }).split(
+            ' '
+          )[0] +
+            ' ' +
+            t('thinking')
+        ); // Placeholder-ish or just simple log
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [gameMode, turn, winner, board, difficulty]);
+
   // Unregister from room when leaving
   const unregisterFromRoom = async () => {
     if (!roomId || !myPlayer) return;
@@ -130,6 +155,14 @@ const Game: React.FC = () => {
     resetGame();
     setGameMode('local');
     setMyPlayer(null); // Local player controls both
+    addLog(t('logLocalStarted'));
+  };
+
+  const startBotGame = (level: Difficulty) => {
+    resetGame();
+    setGameMode('bot');
+    setDifficulty(level);
+    setMyPlayer('red'); // Player is always red vs bot for now
     addLog(t('logLocalStarted'));
   };
 
@@ -359,6 +392,7 @@ const Game: React.FC = () => {
         {gameMode === 'lobby' ? (
           <Lobby
             onJoinLocal={startLocalGame}
+            onJoinBot={startBotGame}
             onJoinOnline={startOnlineGame}
             onOnlineCountUpdate={setOnlineCount}
           />

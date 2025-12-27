@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useI18n } from '../utils/i18n';
+import { Difficulty } from '../types';
 
 interface RoomInfo {
   roomId: string;
@@ -10,18 +11,23 @@ interface RoomInfo {
 
 interface LobbyProps {
   onJoinLocal: () => void;
+  onJoinBot: (difficulty: Difficulty) => void;
   onJoinOnline: (roomId: string, role: 'host' | 'join') => void;
   onOnlineCountUpdate: (count: number) => void;
 }
 
 const Lobby: React.FC<LobbyProps> = ({
   onJoinLocal,
+  onJoinBot,
   onJoinOnline,
   onOnlineCountUpdate,
 }) => {
   const { t } = useI18n();
   const [roomId, setRoomId] = useState('');
-  const [mode, setMode] = useState<'menu' | 'online-setup'>('menu');
+  const [mode, setMode] = useState<
+    'menu' | 'online-setup' | 'difficulty-selection'
+  >('menu');
+  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [selectedColor, setSelectedColor] = useState<'red' | 'blue' | null>(
     null
   );
@@ -127,6 +133,35 @@ const Lobby: React.FC<LobbyProps> = ({
           </button>
 
           <button
+            onClick={() => setMode('difficulty-selection')}
+            className='w-full group relative overflow-hidden p-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/20 text-left'
+          >
+            <div className='relative z-10 flex items-center gap-4'>
+              <div className='p-3 bg-emerald-500/20 rounded-lg text-emerald-400 group-hover:scale-110 transition-transform'>
+                <svg
+                  className='w-6 h-6'
+                  fill='none'
+                  viewBox='0 0 24 24'
+                  stroke='currentColor'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z'
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className='font-bold text-lg text-white group-hover:text-emerald-300 transition-colors'>
+                  {t('vsBot')}
+                </h3>
+                <p className='text-xs text-slate-400'>{t('playWithAI')}</p>
+              </div>
+            </div>
+          </button>
+
+          <button
             onClick={() => setMode('online-setup')}
             className='w-full group relative overflow-hidden p-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/20 text-left'
           >
@@ -153,6 +188,47 @@ const Lobby: React.FC<LobbyProps> = ({
                 <p className='text-xs text-slate-400'>{t('syncDevices')}</p>
               </div>
             </div>
+          </button>
+        </div>
+      ) : mode === 'difficulty-selection' ? (
+        <div className='space-y-6'>
+          <div className='bg-slate-800/50 p-4 rounded-xl border border-slate-700'>
+            <label className='block text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 text-center'>
+              {t('selectDifficulty')}
+            </label>
+            <div className='space-y-3'>
+              {(['easy', 'medium', 'hard'] as Difficulty[]).map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDifficulty(d)}
+                  className={`w-full py-4 px-6 rounded-xl font-bold transition-all border ${
+                    difficulty === d
+                      ? d === 'easy'
+                        ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/20'
+                        : d === 'medium'
+                        ? 'bg-amber-600 text-white border-amber-400 shadow-lg shadow-amber-500/20'
+                        : 'bg-rose-600 text-white border-rose-400 shadow-lg shadow-rose-500/20'
+                      : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-500 hover:bg-slate-700'
+                  }`}
+                >
+                  {t(d)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={() => onJoinBot(difficulty)}
+            className='w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-xl transition-all shadow-xl hover:shadow-emerald-500/30 uppercase tracking-widest'
+          >
+            {t('newGame')}
+          </button>
+
+          <button
+            onClick={() => setMode('menu')}
+            className='w-full py-2 text-slate-500 hover:text-slate-300 text-sm font-medium transition-colors'
+          >
+            {t('cancel')}
           </button>
         </div>
       ) : (
