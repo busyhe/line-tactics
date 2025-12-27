@@ -317,36 +317,36 @@ const Game: React.FC = () => {
         </span>
       </div>
 
+      {/* Language Switcher */}
+      <div className='absolute right-6 top-6 z-50 flex bg-slate-800/50 backdrop-blur-md rounded-lg p-1 border border-slate-700/50'>
+        <button
+          onClick={() => setLang('zh')}
+          className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+            lang === 'zh'
+              ? 'bg-indigo-500 text-white shadow-lg'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          中
+        </button>
+        <button
+          onClick={() => setLang('en')}
+          className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+            lang === 'en'
+              ? 'bg-indigo-500 text-white shadow-lg'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          EN
+        </button>
+      </div>
+
       {/* Header */}
-      <header className='relative z-20 pt-8 pb-4 sm:pt-10 sm:pb-8 text-center px-4 w-full'>
-        <div className='flex items-center justify-center gap-3 relative'>
+      <header className='relative z-20 pt-8 pb-4 sm:pt-10 sm:pb-8 text-center px-4 w-full mt-6'>
+        <div className='flex flex-col items-center justify-center gap-4 relative'>
           <h1 className='text-4xl sm:text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-white to-cyan-300 drop-shadow-2xl tracking-tighter'>
             {t('title')}
           </h1>
-
-          {/* Language Switcher */}
-          <div className='absolute right-4 top-1/2 -translate-y-1/2 flex bg-slate-800/50 backdrop-blur-md rounded-lg p-1 border border-slate-700/50'>
-            <button
-              onClick={() => setLang('zh')}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
-                lang === 'zh'
-                  ? 'bg-indigo-500 text-white shadow-lg'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              中
-            </button>
-            <button
-              onClick={() => setLang('en')}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
-                lang === 'en'
-                  ? 'bg-indigo-500 text-white shadow-lg'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              EN
-            </button>
-          </div>
         </div>
         <p className='text-indigo-200/50 text-xs sm:text-sm font-bold tracking-[0.2em] mt-2 uppercase'>
           {gameMode === 'online'

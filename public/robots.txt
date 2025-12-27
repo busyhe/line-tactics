@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://teo.busyhe.com/sitemap.xml

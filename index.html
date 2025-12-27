@@ -1,11 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Line Tactics: The Four</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <meta name="description" content="A strategic two-player abstract board game." />
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Line Tactics: The Four - Strategic Board Game</title>
+  <meta name="description"
+    content="Line Tactics: The Four is a minimalist, fast-paced strategic board game. Play online or locally. Outsmart your opponent by forming lines of two against one." />
+  <meta name="keywords"
+    content="line tactics, board game, strategy game, multiplayer game, abstract strategy, cloudflare workers, react game" />
+  <link rel="canonical" href="https://teo.busyhe.com/" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://teo.busyhe.com/" />
+  <meta property="og:title" content="Line Tactics: The Four - Strategic Board Game" />
+  <meta property="og:description"
+    content="A minimalist multiplayer strategy board game. Direct your pieces, claim the line, and outsmart your opponent." />
+  <meta property="og:image" content="https://teo.busyhe.com/og-image.png" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://teo.busyhe.com/" />
+  <meta property="twitter:title" content="Line Tactics: The Four - Strategic Board Game" />
+  <meta property="twitter:description"
+    content="A minimalist multiplayer strategy board game. Direct your pieces, claim the line, and outsmart your opponent." />
+  <meta property="twitter:image" content="https://teo.busyhe.com/og-image.png" />
+
+  <link rel="icon" type="image/png" href="/logo.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "VideoGame",
+      "name": "Line Tactics: The Four",
+      "description": "A strategic two-player board game where players maneuver four pieces on a grid to capture the opponent by forming lines of two against one.",
+      "genre": ["Strategy", "Board Game"],
+      "gamePlatform": ["Web Browser"],
+      "applicationCategory": "Game",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
+
   <script type="importmap">
 {
   "imports": {
@@ -16,10 +59,12 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-slate-900 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
-    <div id="root"></div>
+
+<body class="bg-slate-900 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
+  <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>
