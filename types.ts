@@ -24,7 +24,7 @@ export const BOARD_SIZE = 4;
 export type GameMode = 'local' | 'online';
 
 export interface NetworkMessage {
-  type: 'MOVE' | 'RESET' | 'JOIN' | 'SYNC';
+  type: 'MOVE' | 'RESET' | 'JOIN' | 'SYNC' | 'ONLINE_COUNT';
   payload?: any;
   sender?: Player;
 }

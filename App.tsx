@@ -31,6 +31,7 @@ const Game: React.FC = () => {
   // --- Network State ---
   const [myPlayer, setMyPlayer] = useState<Player | null>(null); // null = local (both)
   const [roomId, setRoomId] = useState<string>('');
+  const [onlineCount, setOnlineCount] = useState<number>(0);
   const networkRef = useRef<NetworkService | null>(null);
   const boardRef = useRef<BoardState>(board); // Keep latest board for network callbacks
 
@@ -289,6 +290,11 @@ const Game: React.FC = () => {
         // Reset game when second player joins for a fresh start
         resetGame();
         break;
+      case 'ONLINE_COUNT':
+        if (msg.payload !== undefined) {
+          setOnlineCount(msg.payload);
+        }
+        break;
     }
   };
 
@@ -298,6 +304,17 @@ const Game: React.FC = () => {
       <div className='fixed inset-0 pointer-events-none overflow-hidden'>
         <div className='absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] bg-indigo-500/10 rounded-full blur-[100px] animate-pulse' />
         <div className='absolute top-[30%] -right-[10%] w-[50vw] h-[50vw] bg-blue-500/10 rounded-full blur-[90px]' />
+      </div>
+
+      {/* Online Count Overlay */}
+      <div className='fixed top-6 left-6 z-50 flex items-center gap-2 px-3 py-1.5 bg-slate-900/40 backdrop-blur-md border border-slate-700/50 rounded-full shadow-lg transition-all hover:bg-slate-900/60'>
+        <div className='relative'>
+          <div className='w-2 h-2 bg-emerald-500 rounded-full animate-pulse' />
+          <div className='absolute inset-0 w-2 h-2 bg-emerald-500 rounded-full animate-ping opacity-40' />
+        </div>
+        <span className='text-[10px] font-bold text-slate-300 uppercase tracking-widest'>
+          {onlineCount} {t('online')}
+        </span>
       </div>
 
       {/* Header */}
@@ -340,7 +357,11 @@ const Game: React.FC = () => {
 
       <main className='relative z-10 w-full max-w-6xl px-4 pb-8 flex-1 flex flex-col items-center justify-center'>
         {gameMode === 'lobby' ? (
-          <Lobby onJoinLocal={startLocalGame} onJoinOnline={startOnlineGame} />
+          <Lobby
+            onJoinLocal={startLocalGame}
+            onJoinOnline={startOnlineGame}
+            onOnlineCountUpdate={setOnlineCount}
+          />
         ) : (
           <div className='w-full flex flex-col lg:flex-row items-center lg:items-start justify-center gap-8 lg:gap-16'>
             {/* Game Board Area */}

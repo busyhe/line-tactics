@@ -11,9 +11,14 @@ interface RoomInfo {
 interface LobbyProps {
   onJoinLocal: () => void;
   onJoinOnline: (roomId: string, role: 'host' | 'join') => void;
+  onOnlineCountUpdate: (count: number) => void;
 }
 
-const Lobby: React.FC<LobbyProps> = ({ onJoinLocal, onJoinOnline }) => {
+const Lobby: React.FC<LobbyProps> = ({
+  onJoinLocal,
+  onJoinOnline,
+  onOnlineCountUpdate,
+}) => {
   const { t } = useI18n();
   const [roomId, setRoomId] = useState('');
   const [mode, setMode] = useState<'menu' | 'online-setup'>('menu');
@@ -44,7 +49,10 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinLocal, onJoinOnline }) => {
     try {
       const res = await fetch(`${apiBaseUrl}/rooms`);
       const data = await res.json();
-      setRooms(data);
+      setRooms(data.rooms || []);
+      if (data.totalOnlineCount !== undefined) {
+        onOnlineCountUpdate(data.totalOnlineCount);
+      }
     } catch (e) {
       console.error('Failed to fetch rooms:', e);
     } finally {

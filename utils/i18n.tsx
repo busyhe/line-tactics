@@ -59,6 +59,7 @@ const translations = {
       '<strong>满线免疫：</strong> 如果一行或一列已满（4 个棋子），该线上 <strong>不会</strong> 发生捕获，即使存在捕获模式。',
     gotIt: '明白了，开始对战！',
     loadingRooms: '正在加载房间...',
+    online: '人在线',
   },
   en: {
     title: 'Line Tactics',
@@ -116,6 +117,7 @@ const translations = {
       '<strong>Full Line Immunity:</strong> If a row or column is completely full (4 pieces), <strong>NO</strong> captures can occur on that line, even if the capture pattern exists.',
     gotIt: "Got it, let's play!",
     loadingRooms: 'Loading rooms...',
+    online: 'ONLINE',
   },
 };
 

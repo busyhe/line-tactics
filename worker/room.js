@@ -31,6 +31,7 @@ export class GameRoom {
 
     server.accept();
     this.sessions.set(server, { id: sessionId });
+    this.updateOnlineCount(sessionId, 'join');
 
     server.addEventListener('message', (event) => {
       try {
@@ -45,15 +46,34 @@ export class GameRoom {
 
     server.addEventListener('close', () => {
       this.sessions.delete(server);
+      this.updateOnlineCount(sessionId, 'leave');
       // Notify others about disconnect
       this.broadcast({ type: 'PLAYER_LEFT', senderId: sessionId }, server);
     });
 
     server.addEventListener('error', () => {
       this.sessions.delete(server);
+      this.updateOnlineCount(sessionId, 'leave');
     });
 
     return new Response(null, { status: 101, webSocket: client });
+  }
+
+  async updateOnlineCount(sessionId, action) {
+    try {
+      const registryId = this.env.ROOM_REGISTRY.idFromName('global');
+      const registry = this.env.ROOM_REGISTRY.get(registryId);
+      const response = await registry.fetch(new Request('http://internal/update-count', {
+        method: 'POST',
+        body: JSON.stringify({ sessionId, action })
+      }));
+      const { totalOnlineCount } = await response.json();
+
+      // Broadcast the new count to all clients in this room
+      this.broadcast({ type: 'ONLINE_COUNT', payload: totalOnlineCount });
+    } catch (e) {
+      console.error('Failed to update online count:', e);
+    }
   }
 
   /**

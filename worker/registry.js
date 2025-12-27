@@ -23,6 +23,7 @@ export class RoomRegistry {
     // GET /rooms - List all rooms that need players
     if (request.method === 'GET' && url.pathname === '/rooms') {
       const rooms = await this.state.storage.get('rooms') || {};
+      const totalOnlineCount = await this.state.storage.get('totalOnlineCount') || 0;
       const now = Date.now();
 
       // Clean up expired rooms first
@@ -47,7 +48,7 @@ export class RoomRegistry {
           createdAt: info.createdAt
         }));
 
-      return new Response(JSON.stringify(availableRooms), {
+      return new Response(JSON.stringify({ rooms: availableRooms, totalOnlineCount }), {
         headers: { 'Content-Type': 'application/json' }
       });
     }
@@ -89,6 +90,35 @@ export class RoomRegistry {
 
       await this.state.storage.put('rooms', rooms);
       return new Response(JSON.stringify({ success: true }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // POST /update-count - Update global session count from a room
+    if (request.method === 'POST' && url.pathname === '/update-count') {
+      const { sessionId, action } = await request.json();
+      let sessions = await this.state.storage.get('globalSessions') || {};
+
+      const now = Date.now();
+      if (action === 'join') {
+        sessions[sessionId] = now;
+      } else if (action === 'leave') {
+        delete sessions[sessionId];
+      }
+
+      // Cleanup old sessions (older than 2 minutes)
+      for (const [sid, lastSeen] of Object.entries(sessions)) {
+        if (now - lastSeen > 120000) {
+          delete sessions[sid];
+          changed = true;
+        }
+      }
+
+      const totalOnlineCount = Object.keys(sessions).length;
+      await this.state.storage.put('globalSessions', sessions);
+      await this.state.storage.put('totalOnlineCount', totalOnlineCount);
+
+      return new Response(JSON.stringify({ totalOnlineCount }), {
         headers: { 'Content-Type': 'application/json' }
       });
     }
