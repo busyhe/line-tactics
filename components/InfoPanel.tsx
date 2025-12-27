@@ -16,7 +16,46 @@ interface InfoPanelProps {
   onOpenRules: () => void;
 }
 
-const EMOJIS = ['😃', '😂', '👍', '👎', '🎯', '🔥'];
+const EMOJIS = [
+  '😃',
+  '😂',
+  '👍',
+  '👎',
+  '🎯',
+  '🔥',
+  '🤝',
+  '😲',
+  '💡',
+  '💀',
+  '🏆',
+  '🤔',
+  '😭',
+  '😡',
+  '�',
+  '🤖',
+  '🍀',
+  '�👀',
+  '🫡',
+  '🤡',
+  '❤️',
+  '👑',
+  '🧠',
+  '⚡',
+  '⚔️',
+  '🤯',
+  '🤐',
+  '💯',
+  '⏳',
+  '🎲',
+  '💪',
+  '😎',
+  '🙄',
+  '😅',
+  '👌',
+  '🎉',
+  '😈',
+  '🧊',
+];
 
 const InfoPanel: React.FC<InfoPanelProps> = ({
   turn,
@@ -198,7 +237,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
       {/* Emoji Bar (only in online mode for myPlayer) */}
       {myPlayer && (
         <div className='flex items-center justify-between bg-slate-900/40 backdrop-blur-sm rounded-xl p-2 border border-slate-700/50'>
-          <div className='flex gap-1.5'>
+          <div className='flex gap-1.5 overflow-x-auto no-scrollbar py-0.5 scroll-smooth'>
             {EMOJIS.map((emoji) => (
               <button
                 key={emoji}
